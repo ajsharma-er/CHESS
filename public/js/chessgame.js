@@ -1,8 +1,47 @@
-const socket = io();
+
+// Room join logic
+const urlParams = new URLSearchParams(window.location.search);
+let roomId = urlParams.get("room");
+
+// const socket = io();
+const socket = io({
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000
+  });
+
+if (roomId) {
+    socket.emit("joinRoom", roomId);
+    document.getElementById("inviteSection").classList.remove("hidden");
+    document.getElementById("inviteLink").value = `${window.location.origin}?room=${roomId}`;
+
+
+
+    socket.on("bothPlayersJoined", () => {
+        document.getElementById("roomControls").classList.add("hidden");
+        document.querySelector("boardSection").classList.remove("hidden");
+        startGame();
+    });
+}
+// const socket = io();
+// const urlParams = new URLSearchParams(window.location.search);
+// const roomId = urlParams.get("room");
+
+// socket.emit("joinRoom", roomId);
+
 const chess = new Chess();
 const boardElement = document.querySelector(".chessboard");
+boardElement.classList.add("touch-none");
 
 
+// this for mobile touch contrrol 
+
+
+let touchStart = null;
+let touchMove = null;
+
+
+// this for desktop control 
 let draggedPiece = null;
 let sourceSequare = null;
 let playerRole = null;
@@ -16,6 +55,8 @@ const renderBoard = ()=>{
             squareElement.classList.add(
                 "square", 
                 (rowindex + squareindex)% 2 === 0 ? "light" : "dark" );
+                
+
             squareElement.dataset.row = rowindex;
             squareElement.dataset.col = squareindex;
 
@@ -23,6 +64,7 @@ const renderBoard = ()=>{
             if (square) {
                 const pieceElement = document.createElement("div");
                 pieceElement.classList.add("piece", square.color === 'w' ? "white":"black");
+                pieceElement.classList.add("touch-none");
                 pieceElement.innerText = getPieceUnicode(square);
                 pieceElement.draggable = playerRole === square.color;
            
@@ -39,6 +81,64 @@ const renderBoard = ()=>{
             draggedPiece = null;
             sourceSequare = null;
         });
+
+        // Touch events for mobile
+        pieceElement.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchStart = {
+                x: touch.clientX,
+                y: touch.clientY,
+                row: rowindex,
+                col: squareindex,
+            };
+            sourceSequare = { row: rowindex, col: squareindex };
+            draggedPiece = pieceElement;
+        });
+        
+        pieceElement.addEventListener("touchmove", (e) => {
+            const touch = e.touches[0];
+            touchMove = {
+                x: touch.clientX,
+                y: touch.clientY
+            };
+        });
+        
+        pieceElement.addEventListener("touchend", (e) => {
+            e.preventDefault();
+            if (!touchMove || !touchStart) return;
+        
+            const boardRect = boardElement.getBoundingClientRect();
+            const squareSize = boardRect.width / 8;
+        
+            const offsetX = touchMove.x - boardRect.left;
+            const offsetY = touchMove.y - boardRect.top;
+        
+            const targetCol = Math.floor(offsetX / squareSize);
+            const targetRow = Math.floor(offsetY / squareSize);
+        
+            // Flip if black
+            const adjustedTargetRow = playerRole === 'b' ? 7 - targetRow : targetRow;
+            const adjustedTargetCol = playerRole === 'b' ? 7 - targetCol : targetCol;
+        
+            if (
+                adjustedTargetCol >= 0 &&
+                adjustedTargetCol <= 7 &&
+                adjustedTargetRow >= 0 &&
+                adjustedTargetRow <= 7
+            ) {
+                handleMove(sourceSequare, { row: adjustedTargetRow, col: adjustedTargetCol });
+            }
+        
+            // Reset
+            touchStart = null;
+            touchMove = null;
+            sourceSequare = null;
+            draggedPiece = null;
+        });
+        
+        
+    
 
         squareElement.appendChild(pieceElement);
     }
@@ -60,6 +160,7 @@ const renderBoard = ()=>{
 
             }
         });
+        
         boardElement.appendChild(squareElement);
 
     });
@@ -86,7 +187,9 @@ const handleMove = (source, target) => {
     console.log("Move Object:", move);
 
     socket.emit("move", move);
-};
+}; 
+
+
 
 
 const getPieceUnicode = (piece)=>{
@@ -157,3 +260,29 @@ socket.on("notYourTurn", function (message){
 });
 
 renderBoard();
+
+document.getElementById("createRoomBtn").addEventListener("click", () => {
+    window.location.href = "/create"; // Triggers server to generate new room and redirect
+});
+
+document.getElementById("joinRoomBtn").addEventListener("click", () => {
+    const inputRoom = document.getElementById("joinRoomInput").value.trim();
+    if (inputRoom) {
+        window.location.href = `/?room=${inputRoom}`;
+    }
+});
+
+document.getElementById("copyBtn").addEventListener("click", () => {
+    const linkInput = document.getElementById("inviteLink");
+    linkInput.select();
+    linkInput.setSelectionRange(0, 99999); // For mobile
+    document.execCommand("copy");
+});
+
+
+function startGame() {
+    const board = Chessboard('board', {
+        draggable: true,
+        position: 'start'
+    });
+}

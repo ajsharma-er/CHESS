@@ -50,6 +50,7 @@
 
         .piece.draggable {
             cursor: grab;
+            
         }
 
         .dragging {
@@ -62,15 +63,53 @@
         }
     </style>
 </head>
-<body>
-    <div class="w-full h-screen flex items-center justify-center bg-zinc-900">
-        <div class="chessboard w-96 h-96 bg-red-800"></div>
+<body class="bg-zinc-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <h1 class="text-2xl font-bold mb-4">Multiplayer Chess</h1>
+
+<div id="roomControls">
+    <!-- CREATE ROOM BUTTON -->
+    <button id="createRoomBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded mb-4">
+        Create Room
+    </button>
+
+    <!-- JOIN ROOM INPUT -->
+    <div class="mb-4">
+        <input id="joinRoomInput" type="text" placeholder="Enter Room ID"
+            class="px-3 py-2 text-black rounded w-64" />
+        <button id="joinRoomBtn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded ml-2">
+            Join Room
+        </button>
     </div>
 
+    <!-- INVITE LINK FIELD -->
+    <div id="inviteSection" class="hidden flex flex-col items-center space-y-2 mb-4">
+        <p>Invite your friend:</p>
+        <div class="flex">
+            <input type="text" id="inviteLink" readonly
+                class="bg-gray-700 text-white px-2 py-1 rounded w-64 text-sm" />
+            <button id="copyBtn" class="bg-gray-500 hover:bg-gray-600 px-2 ml-2 rounded">Copy</button>
+        </div>
+    </div>
+</div>
+
+    <!-- CHESS BOARD -->
+    <div class=" boardSection chessboard touch-none w-96 h-96 bg-red-800 mt-4"></div>
+
+    <!-- Socket, Chess.js and Game Script -->
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="/js/chessgame.js"></script>
 </body>
 
 
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" integrity="sha512-xRllwz2gdZciIB+AkEbeq+gVhX8VB8XsfqeFbUh+SzHlN96dEduwtTuVuc2u9EROlmW9+yhRlxjif66ORpsgVA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="/js/chessgame.js"></script>
+
+<script>
+    const roomId = new URLSearchParams(window.location.search).get("room");
+    const inviteUrl = `${window.location.origin}?room=${roomId}`;
+    document.getElementById("inviteLink").value = inviteUrl;
+</script>
 </html>
